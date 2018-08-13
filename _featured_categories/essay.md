@@ -1,10 +1,10 @@
 ---
 layout: list
-title: Essay
-slug: essay
+title: Language
+slug: language
 menu: true
-submenu: false
+submenu: true
 order: 4
 description: >
-  평소 생각과 쓰고싶은 글을 씁니다.
+  프로그래밍 언어 관련
 ---
