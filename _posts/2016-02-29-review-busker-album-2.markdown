@@ -1,12 +1,12 @@
 ---
 layout: post
-title:  "[리뷰]버스커버스커 2집"
-subtitle:   "[리뷰]버스커버스커 2집"
-categories: review
-tags: music
+title:  "제목을 적고"
+subtitle:   "서브 제목을 적고"
+categories: sample
+tags: test
 ---
 
-## 버스커버스커 2집
+## 내용을 적고
 
 1. 가을밤
 2. 잘할 걸
