@@ -29,13 +29,13 @@ export default defineAstroPaperConfig({
     toc: true,
     // GitHub 저장소에서 Discussions를 활성화한 뒤 https://giscus.app/ko 에서 발급받은 ID를 입력하고 enabled: true 로 변경하세요.
     giscus: {
-      enabled: false,
+      enabled: true,
       repo: "stevefordev/stevefordev.github.io",
-      repoId: "",
+      repoId: "MDEwOlJlcG9zaXRvcnkxNDQ1Mzg2NTU=",
       category: "Announcements",
-      categoryId: "",
+      categoryId: "DIC_kwDOCJ18H84DLKHe",
       mapping: "pathname",
-      strict: "0",
+      strict: "1",
       reactionsEnabled: "1",
       emitMetadata: "0",
       inputPosition: "bottom",
