@@ -72,6 +72,7 @@ const {
   modDatetime,
   timezone,
   tags,
+  faqs,
   hideEditPost,
   hideToc,
 } = post.data;
@@ -102,11 +103,14 @@ const ogImage = ogImageUrl
 
 <PostLayout
   title={`${title} | ${config.site.title}`}
+  rawTitle={title}
   description={description}
   ogImage={ogImage}
   canonicalURL={canonicalURL}
   pubDatetime={pubDatetime}
   modDatetime={modDatetime}
+  tags={tags}
+  faqs={faqs}
 >
   <Header />
 

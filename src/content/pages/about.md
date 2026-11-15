@@ -1,18 +1,19 @@
 ---
 title: "About"
-description: "Steve Park 소개 및 특허출원 이력"
+description: "Steve와 Steve Devlog 소개"
 ---
-
-## 소개
-
-안녕하세요, 저는 Steve 입니다.
-
-비전공 개발자로 시작해 웹, 프론트엔드, 백엔드, 클라우드, 머신러닝 등 개발에 필요한 로그와 학습 기록을 꾸준히 정리하고 있습니다.
 
 <img src="/assets/img/me.jpeg" alt="Steve Park" class="w-40 rounded-lg" />
 
-## 특허출원
+## 소개
 
-- [스트리밍 서비스 서버 및 그의 제어 방법](https://doi.org/10.8080/1020140121212) - 2014, 클라우드 기반 UHD 방송콘텐츠 스트리밍 서비스 기술 개발
-- [스트리밍 서비스 서버 및 그의 제어 방법](https://doi.org/10.8080/1020150116535) - 2015, 클라우드 기반 UHD 방송콘텐츠 스트리밍 서비스 기술 개발
-- [스트리밍 서비스 서버 및 그의 제어 방법](https://doi.org/10.8080/1020160111769) - 2016, 클라우드 기반 UHD 방송콘텐츠 스트리밍 서비스 기술 개발
+안녕하세요, Steve입니다.
+
+개발하면서 마주친 문제와 정리해 두고 싶은 기술 내용을 차분히 기록하는 공간입니다. 웹과 시스템 기초부터 최근의 AI 기술 흐름까지, 시간이 지나 다시 꺼내 보더라도 맥락을 바로 떠올릴 수 있게 적어두고 있습니다.
+
+직접 확인하고 이해한 내용을 꾸밈없이 분명하게 남기려 합니다.
+
+## 연락처
+
+- GitHub: [github.com/stevefordev](https://github.com/stevefordev)
+- Email: [stevefordev@gmail.com](mailto:stevefordev@gmail.com)

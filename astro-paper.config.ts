@@ -5,7 +5,7 @@ export default defineAstroPaperConfig({
     url: "https://stevefordev.github.io/",
     title: "Steve Devlog",
     description:
-      "개발에 필요한 로그 수집 — 비전공 개발자, 계속 하려면 계속 공부",
+      "개발 과정에서 마주친 문제와 학습 기록을 차분히 정리하는 기술 블로그",
     author: "steve park",
     profile: "https://github.com/stevefordev",
     lang: "ko",
