@@ -1,81 +1,133 @@
 ---
-title: React Component - Stateless 또는 Stateful
+title: 유지보수하기 좋은 React 컴포넌트 설계 — 순수 UI와 상태의 분리
 author: steve park
 pubDatetime: 2017-05-24T09:00:00+09:00
 tags:
-- devlog
-- react
-- component
-description: React 컴포넌트를 만들다 고민이 생겼다.
+  - react
+  - javascript
+  - architecture
+description: 과거 Stateless/Stateful 구분에서 현대 React(함수형 컴포넌트 + Custom Hooks)로 이어지는 핵심 설계 원칙인 표현(UI)과 상태·비즈니스 로직의 분리 전략을 정리합니다.
 ---
 
-React 컴포넌트를 만들다 고민이 생겼다.
+React로 애플리케이션을 개발하다 보면 자연스럽게 다음과 같은 설계 고민을 마주하게 됩니다.
 
-> Stateless 컴포넌트를 만들까? Stateful 컴포넌트를 만들까?
+> "이 컴포넌트 안에 상태(`state`)와 API 호출을 직접 넣을까, 아니면 `props`만 받아서 그리는 순수 컴포넌트로 분리할까?"
 
-결론부터 이야기하면 가능한 한 stateless 컴포넌트를 만들자.
+결론부터 말하면 **가능한 한 UI를 그리는 컴포넌트는 상태와 부수 효과(Side Effect)를 갖지 않는 순수한 형태(Stateless / Presentational)로 유지하는 편이 테스트, 재사용, 유지보수 모든 면에서 유리합니다.**
 
-## Stateless 또는 Stateful
+## 과거의 구분에서 현대의 패턴으로
 
----
+React 16.8 이전에는 상태를 가지려면 `class` 컴포넌트를, 상태가 없으면 함수형 컴포넌트(SFC: Stateless Functional Component)를 써야 했기 때문에 문법 자체가 두 역할을 강하게 구분해 주었습니다.
 
-React는 stateless functional components라는 컴포넌트를 정의하는 간단한 방법을 가지고 있다. 이 컴포넌트들은 순수 자바스크립트 함수를 사용한다.
+오늘날에는 **Hooks(`useState`, `useEffect` 등)** 의 등장으로 모든 컴포넌트를 함수형으로 작성할 수 있게 되었지만, **UI 렌더링 책임과 상태/데이터 페칭 책임을 분리한다**는 본질적인 설계 원칙은 여전히 유효하며 오히려 **Custom Hook**을 통해 더욱 깔끔해졌습니다.
 
-stateless 컴포넌트를 사용하면서 몇가지 이점을 얻을 수 있다.
+## 순수 UI(Presentational) 컴포넌트가 주는 4가지 이점
 
-### 클래스가 필요하지 않다
+### 1. 예측 가능성과 디버깅 용이성
 
-stateless 컴포넌트는 순수함수로 이루어져있다. 덕분에 클래스를 사용하면서 나타날 수 있는 부작용들을 제거 할 수 있게 된다.
+상태와 외부 의존성이 없는 컴포넌트는 `UI = f(props)`라는 순수 함수에 가깝습니다. 동일한 `props`를 넘기면 언제나 동일한 JSX가 반환되므로, 화면 버그가 발생했을 때 원인을 추적하기가 매우 쉽습니다.
 
+### 2. 나쁜 컴포넌트 구조의 조기 발견
 
-### this가 없다
+컴포넌트가 너무 많은 `props`(예: 10개 이상)를 받기 시작하면 **"이 컴포넌트가 너무 많은 책임을 지고 있지는 않은가?"** 또는 **"전달하는 데이터 모델이 잘못 묶여 있지 않은가?"** 라는 코드 스멜(Code Smell)을 즉시 알아차릴 수 있습니다. 자연스럽게 작은 컴포넌트로 분해하거나 `children` 합성(Composition) 패턴으로 리팩토링하게 됩니다.
 
-stateless 컴포넌트는 그냥 함수다. 그래서 변덕이 심한 자바스크립트의 this 키워드를 피해갈 수 있다. 그럼으로써 컴포넌트는 이해하기 쉬워진다. 예제로 한번 비교해보자.
+### 3. 목업(Mock) 없는 쉬운 테스트
 
-```js
+API 클라이언트나 전역 스토어를 직접 호출하는 컴포넌트는 단위 테스트 작성 시 무거운 모킹(Mocking)이 필요합니다. 반면 `props`와 콜백 함수만 받는 순수 UI 컴포넌트는 원하는 데이터만 인자로 넘겨 렌더링 결과를 바로 검증할 수 있고, Storybook 같은 UI 카탈로그 도구에도 손쉽게 등록할 수 있습니다.
 
-<button onClick={this.something.bind(this)}>Do Something</button>
+### 4. 렌더링 최적화와 재사용성
 
-<button onClick={something}>Do Something</button>
+UI 컴포넌트가 특정 API 스펙이나 전역 상태 라이브러리에 묶여 있지 않으므로 다른 페이지나 디자인 시스템에서도 그대로 재사용할 수 있습니다. 필요한 경우 `React.memo`를 적용하기도 훨씬 명확합니다.
 
+## 실전 리팩토링: 로직과 UI 분리하기
+
+### 개선 전: UI와 데이터 페칭/상태가 한곳에 뒤섞인 컴포넌트
+
+```tsx
+function UserProfileCard({ userId }: { userId: string }) {
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    fetch(`/api/users/${userId}`)
+      .then(res => res.json())
+      .then(data => {
+        setUser(data);
+        setIsLoading(false);
+      });
+  }, [userId]);
+
+  if (isLoading) return <div className="spinner">로딩 중...</div>;
+  if (!user) return <div>사용자를 찾을 수 없습니다.</div>;
+
+  return (
+    <section className="card">
+      <h2>{user.name}</h2>
+      <p>{user.role}</p>
+    </section>
+  );
+}
 ```
 
-stateless 컴포넌트는 bind가 필요가 없다. 클래스를 버림으로써 this를 bind할 필요가 없어진것이다. this가 얼마나 많은 개발자들을 괴롭혔는지를 생각하면 이건 상당한 이점이다.
+### 개선 후: Custom Hook + 순수 UI 컴포넌트로 분리
 
+```tsx
+// 1. 상태 및 데이터 페칭 책임을 Custom Hook으로 분리
+function useUserProfile(userId: string) {
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
+  useEffect(() => {
+    let ignore = false;
+    setIsLoading(true);
 
-### 어길 수 없다
+    fetch(`/api/users/${userId}`)
+      .then(res => res.json())
+      .then(data => {
+        if (!ignore) {
+          setUser(data);
+          setIsLoading(false);
+        }
+      });
 
-stateless 컴포넌트는 presentational 컴포넌트로 사용하기 좋다. Presentational 컴포넌트는 행동보다는 UI에 집중하기 때문에, state를 사용하는걸 피하여야한다. 그러기위해 state는 보통 container라고 불리는 상위컴포넌트에서 관리되거나 Flux/Redux등으로 관리되어야한다. stateless 컴포넌트는 state와 lifecycle 을 지원하지 않는다. 우리는 그 덕분에 게으름을 방지할 수 있다.
+    return () => {
+      ignore = true; // 경쟁 상태(Race Condition) 방지
+    };
+  }, [userId]);
 
-바쁠 때 우리는 presentational 컴포넌트에 자꾸 스테이트를 추가하고 싶은 유혹에 빠진다. 분명 state를 추가하면 금방끝나! 하지만 stateless 컴포넌트를 사용하면 state를 추가할 수 없다. 지원을 안하니까. 우리 게으름도 허용되지 않는다. 우리는 게으름을 버리고, 우리의 stateless 컴포넌트가 프로그램적으로 순수한 컴포넌트로 유지된다.
+  return { user, isLoading };
+}
 
+// 2. 순수 UI 컴포넌트: props만 받아 렌더링
+interface UserCardProps {
+  name: string;
+  role: string;
+}
 
-### 뻥튀기된 컴포넌트와 나쁜 자료구조가 쉽게 발견된다.
+function UserCard({ name, role }: UserCardProps) {
+  return (
+    <section className="card">
+      <h2>{name}</h2>
+      <p>{role}</p>
+    </section>
+  );
+}
 
-인자가 많은 함수가 냄새나는 코드라는건 다들 알고있다. stateless 컴포넌트를 사용하면 인자 리스트에 컴포넌트의 의존성을 명확히 전달한다. 그러므로 주의가 필요한 구성요소를 쉽게 찾아 낼 수 있다.
+// 3. 조합(Container) 계층
+function UserProfileContainer({ userId }: { userId: string }) {
+  const { user, isLoading } = useUserProfile(userId);
 
-문제가 생길 경우 컴포넌트를 분해하거나 전달하고있는 자료구조를 다시 생각해볼 수 있다. 물론 많은 분량의 props를 전달할 때는 가끔 객체로 보낼 수 있다. 하지만 props가 논리적으로 하나의 객체로 정의될만큼의 관련이 없다면 컴포넌트를 여러개로 리팩토링할 시기가 된 것이다.
+  if (isLoading) return <div className="spinner">로딩 중...</div>;
+  if (!user) return <div>사용자를 찾을 수 없습니다.</div>;
 
+  return <UserCard name={user.name} role={user.role} />;
+}
+```
 
-### 이해하기 쉽다
+> [!TIP]
+> **모든 상태**를 무조건 바깥으로 빼야 하는 것은 아닙니다. 모달의 열림/닫힘, 드롭다운 토글, 입력 중인 임시 폼 값처럼 **오직 해당 UI 내부에서만 소비되는 지역 UI 상태**는 컴포넌트 내부에 두는 것이 오히려 결합도를 낮추는 올바른 선택입니다.
 
-stateless 컴포넌트를 보면 '이거 참 단순하고 보기 쉽구나' 라고 생각할 수 있다. 심지어 많은 markup과 함수들이 포함되어있더라도 개념적으로 단순하다. 순수함수이기때문이다.
+## 핵심 요약
 
-
-
-### 테스트하기 쉽다
-
-순수함수이기 때문에, assertion이 매우 간단하다. 이런 props를 줄게 저런 markup을 줘.라고 명시할 수 있다. stateless 컴포넌트와 함께라면 각가의 컴포넌트를 쉽게 테스트할 수 있다. 목업이나, 조작, 특별한 라이브러리등의 트릭을 사용하지 않아도
-
-
-### 성능
-
-stateless 컴포넌트는 곧 성능의 향상을 가져온다. 생명주기가 없기때문에 불필요한 메모리할당과 체킹을 하지 않아도 된다.
-
-## 마치며
----
-
-수많은 이유들로 우리는 가능한 한 stateless 컴포넌트를 사용해야한다는 결론에 도달했다. 실제로 [stateless 컴포넌트로 45%의 성능향상을 얻었다](https://medium.com/missive-app/45-faster-react-functional-components-now-3509a668e69f)는 사례를 적은 글도 있다.
-
-우리는 성능을 개선할 수 있는 수많은 방법중 하나를 오늘 또 배웠다.
+- React 생태계가 클래스에서 Hooks, 서버 컴포넌트로 진화해도 **"비즈니스/데이터 로직과 순수 UI 표현을 분리한다"** 는 핵심 원칙은 변하지 않습니다.
+- 재사용해야 하는 UI 컴포넌트는 상태와 API 의존성을 걷어내고 `props` 기반의 순수 컴포넌트로 설계하세요.

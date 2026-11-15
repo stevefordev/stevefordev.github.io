@@ -1,146 +1,76 @@
 ---
-title: '[web]로컬스토리지, 세션스토리지 그리고 쿠키'
+title: 브라우저 저장소 완벽 비교 — Cookie · localStorage · sessionStorage · IndexedDB
 author: steve park
 pubDatetime: 2017-06-21T09:00:00+09:00
 tags:
-- devlog
-- web
-- storage
-- cookie
-description: 로컬스토리지, 세션스토리지 그리고 쿠키
+  - web
+  - storage
+  - security
+description: 브라우저 클라이언트 저장소인 Cookie, localStorage, sessionStorage, IndexedDB의 용량·수명·서버 전송 여부·보안 특성(HttpOnly/SameSite/XSS)과 실무 선택 기준을 정리합니다.
 ---
 
-오늘은 웹에서 스토리지와 쿠키에 대해서 알아보려한다.
+웹 애플리케이션이 사용자 설정, 임시 입력값, 인증 상태 등을 클라이언트 측에 유지하려면 브라우저 저장소를 활용해야 합니다. 대표적인 저장소인 **Cookie, Web Storage(`localStorage` / `sessionStorage`), IndexedDB** 는 각기 탄생 목적과 보안 특성이 다릅니다.
 
-## 스토리지와 쿠키
+## 브라우저 저장소 한눈에 비교하기
 
----
+| 구분 | Cookie | `localStorage` | `sessionStorage` | `IndexedDB` |
+| --- | --- | --- | --- | --- |
+| **저장 용량** | 약 **4KB** (개수 제한 있음) | 도메인당 약 **5~10MB** | 도메인당 약 **5~10MB** | 가용 디스크에 따라 수백 MB+ |
+| **만료 시점** | `Max-Age`/`Expires` 설정 (미설정 시 세션 쿠키) | 명시적 삭제 전까지 영구 | **현재 탭/창 닫을 때** 삭제 | 영구 (명시적 삭제 전까지) |
+| **HTTP 요청 시 자동 전송** | **매 요청마다 헤더에 포함** | 전송 안 됨 | 전송 안 됨 | 전송 안 됨 |
+| **데이터 형식** | 문자열 (Key=Value) | 문자열 (Key-Value) | 문자열 (Key-Value) | 구조화된 객체, 파일(Blob), 인덱스 |
+| **JS 접근 제한** | **`HttpOnly`** 설정 시 JS 접근 차단 가능 | 항상 JS 접근 가능 | 항상 JS 접근 가능 | 항상 JS 접근 가능 |
+| **동작 방식** | 동기 | 동기 (메인 스레드 블로킹 주의) | 동기 | **비동기** (트랜잭션 기반) |
 
-클라이언트의 정보를 저장하는 역할을 하는 것에는 크게 스토리지와 쿠키가 있다.
+## 1. Cookie (쿠키)
 
-### 스토리지
+쿠키는 원래 상태를 유지하지 않는(Stateless) HTTP 프로토콜에서 **서버와 클라이언트가 상태를 주고받기 위해** 만들어졌습니다. 용량이 4KB로 작고 매 HTTP 요청마다 `Cookie` 헤더에 자동으로 실려 가므로, 불필요한 데이터를 쿠키에 많이 넣으면 네트워크 트래픽이 낭비됩니다.
 
-스토리지는 말그대로 저장소를 이야기 하는데, 데이터를 저장하는 역할을 한다. HTML5에서 추가된 스펙으로 키와 벨류가 쌍으로 저장되는 키-벨류 스토리지이다.
+### 반드시 알아야 할 쿠키 보안 속성
 
-종류는 로컬 스토리지와 세션 스토리지 두 종류로 나뉜다. 두 스토리지의 차이점은 영구성이다. 로컬스토리지는 특별히 지우지 않는 한 계속 브라우저에 남아있는 스토리지인 반면에, 세션스토리지는 브라우저가 닫힐 경우 제거된다.
+단순히 `document.cookie = "key=value"`로 다루기보다 서버의 `Set-Cookie` 응답 헤더에 보안 속성을 함께 지정하는 것이 중요합니다.
 
-이런 특징 때문에 서로 사용처들이 다른데, 로컬스토리지는 보통 지속적으로 필요한 [자동로그인](https://isme2n.github.io/web/2017/06/13/security-remember-me/)이나 설정값 데이터등을 저장하고, 세션스토리지에는 간단한 입력폼 정보라던가를 저장해서 문제시 복구하는 기능으로 사용되곤한다.
-
-물론 클라이언트의 저장소에 저장하는 것이기 때문에 민감한 정보(비밀번호 등)는 저장하지 않는 것이 좋다.
-
-### 쿠키
-
-쿠키도 역시 키-벨류 저장소인데, 만료기한도 함께 있는 저장소이다. HTTP요청시 사용자의 쿠키 정보가 서버로 전달되어 사용자를 구별하곤한다.
-
-## 쿠키의 단점
-
----
-
-그렇다면 왜 쿠키라는 기능이 있는데 스토리지를 만든 것일까?
-
-### 용량
-
-먼저, 쿠키는 사이즈가 매우 작다. 쿠키는 4kb의 용량을 한계로 가지고 있는 저장소로, 많은 양의 데이터를 저장할 수 없다.
-
-### 속도
-
-쿠키는 매 HTTP요청마다 포함되어 서버에 전달된다. 물론 쿠키는 4kb의 매우 작은 용량이지만 매요청마다 필요하지 않은 데이터가 전달 되는 것은 낭비이다.
-
-### 보안
-
-쿠키는 사용자의 로컬에도 저장되고, 매 HTTP요청마다 전달된다. 쿠키는 별도의 암호화 없이 전달되기 때문에 로컬또는 요청이 도청당하면 사용자의 정보가 쉽게 도난당할 수 있다.
-
-<script async src="//pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
-<ins class="adsbygoogle"
-     style="display:block; text-align:center;"
-     data-ad-format="fluid"
-     data-ad-layout="in-article"
-     data-ad-client="ca-pub-9134477021095729"
-     data-ad-slot="3873336698"></ins>
-<script>
-     (adsbygoogle = window.adsbygoogle || []).push({});
-</script>
-
-## 스토리지의 장점과 사용
-
----
-
-### 장점
-
-스토리지는 쿠키의 문제점을 보안하기위해 나온 것이기 때문에 쿠키의 단점을 대부분 커버하였다. 스토리지의 용량은 꽤 크고, HTTP요청 때 전달되지 않으며, 표준을 지켜 설계한다면 보안도 한층 강화할 수 있다.
-
-스토리지의 용량은 쿠키에 비해 상대적으로 큰데, 표준에서는 한사이트당 5mb를 권장한다. 키와 벨류값만 저장하기엔 충분히 큰 사이즈이다.
-
-또한 서버에 전송되지 않기 때문에, 자원 낭비에 대해 크게 고려할 필요가 없다.
-
-### 사용
-
-스토리지는 브라우저, 디바이스 등등의 환경을 많이 타고, 그 때문에 제대로 작동을 하지 않을 수도있다. 그러므로 꼭 필요한 주요한 정보라면 서버에서 관리를 해야하며, 스토리지는 없어도 되지만 있으면 좋은 기능을 구현하는 것이 좋다.
-
-예를들어 '팝업 일주일간 열지않기'라거나 '글쓰기 도중 나갔을 때 내용 복구하기'등의 기능에 사용할 수 있다.
-
-## 사용법
-
----
-
-### 쿠키
-
-쿠키는 보통 따로 함수를 만들어서 사용한다.
-
-```js
-function setCookie(cname, cvalue, exdays) {
-
-    var d = new Date();
-
-    d.setTime(d.getTime() + (exdays*24*60*60*1000));
-
-    var expires = "expires="+d.toUTCString();
-
-    document.cookie = cname + "=" + cvalue + "; " + expires;
-
-}
-
-
-
-function getCookie(cname) {
-
-    var name = cname + "=";
-
-    var ca = document.cookie.split(';');
-
-    for(var i=0; i<ca.length; i++) {
-
-        var c = ca[i];
-
-        while (c.charAt(0)==' ') c = c.substring(1);
-
-        if (c.indexOf(name) != -1) return c.substring(name.length,c.length);
-
-    }
-
-    return "";
-
-}
-
+```http
+Set-Cookie: session_id=abc123; Path=/; Max-Age=3600; HttpOnly; Secure; SameSite=Lax
 ```
 
-### 스토리지
+- **`HttpOnly`**: JavaScript(`document.cookie`)에서 쿠키를 읽거나 수정하지 못하게 막아 **XSS 공격으로부터 세션/토큰 탈취를 방어**합니다.
+- **`Secure`**: HTTPS 암호화 통신일 때만 쿠키를 전송합니다.
+- **`SameSite` (`Strict` / `Lax` / `None`)**: 타 사이트에서 발생한 요청에 쿠키를 함께 보낼지 제어하여 **CSRF 공격을 방어**합니다.
+- **`Max-Age` / `Expires`**: 미지정 시 브라우저 종료와 함께 사라지는 세션 쿠키가 되며, 지정 시 디스크에 유지되는 영구 쿠키가 됩니다.
 
-스토리지는 setItem,getItem,remove,clear 등의 함수를 이용해서 사용한다.
+## 2. Web Storage (`localStorage` & `sessionStorage`)
+
+HTML5에서 쿠키의 작은 용량과 매 요청 자동 전송 단점을 보완하기 위해 도입된 키-값(Key-Value) 저장소입니다.
+
+### `localStorage` vs `sessionStorage`
+
+- **`localStorage`**: 동일한 출처(Origin: 프로토콜 + 도메인 + 포트) 내 모든 탭과 창에서 공유되며, 브라우저를 껐다 켜도 유지됩니다. 다크 모드 테마 설정, UI 레이아웃 상태 등에 적합합니다.
+- **`sessionStorage`**: **브라우저 탭(세션) 단위로 격리**되며 탭을 닫으면 즉시 삭제됩니다. 다단계 결제/회원가입 폼의 임시 입력값 복구처럼 현재 탭에서만 유지할 데이터에 적합합니다.
 
 ```js
-localStorage.setItem('name', 'isme2n');
-localStorage.setItem('gender', 'male');
-localStorage.getItem('name'); // isme2n
-localStorage.getItem('gender'); // male
-localStorage.removeItem('gender');
-localStorage.getItem('name'); // isme2n
-localStorage.getItem('gender'); // null (삭제됨)
-localStorage.clear(); // 전체 삭제
+// localStorage 기본 사용법 (객체는 JSON 직렬화 필요)
+const prefs = { theme: "dark", fontSize: 16 };
+localStorage.setItem("user_prefs", JSON.stringify(prefs));
+
+const saved = JSON.parse(localStorage.getItem("user_prefs") ?? "{}");
+console.log(saved.theme); // "dark"
+
+localStorage.removeItem("user_prefs");
+// localStorage.clear(); // 현재 Origin의 모든 키 삭제
 ```
 
-## 마치며
+> [!WARNING]
+> **민감한 정보(비밀번호, 개인정보, 탈취 위험이 큰 인증 토큰 등)는 `localStorage`에 저장하지 마세요.**
+> `localStorage`는 같은 Origin에서 실행되는 모든 JavaScript가 읽을 수 있으므로, 서드파티 스크립트나 XSS 취약점이 하나라도 뚫리면 데이터가 그대로 노출됩니다. 인증용 토큰은 가능한 한 `HttpOnly` 쿠키를 활용하는 것이 안전합니다. ([자동 로그인 보안 설계 참고](/posts/2017-06-13-security-remember-me))
 
----
+## 3. IndexedDB
 
-쿠키와 스토리지는 서로 대립되는 관계가 아니다. 쿠키와 스토리지를 적절히 혼합하여 사용하면 더 좋은 서비스를 만들 수 있을 것이다.
+수십 MB 이상의 대용량 구조화 데이터나 오프라인 캐싱(PWA), 파일/이미지 캐시가 필요하다면 동기식으로 메인 스레드를 막는 `localStorage` 대신 비동기 NoSQL 데이터베이스인 **IndexedDB**를 사용해야 합니다.
+
+## 실무 선택 기준 요약
+
+- **인증 세션 · Refresh Token** → `HttpOnly` + `Secure` + `SameSite`가 적용된 **Cookie**
+- **테마, 언어, "오늘 하루 보지 않기" 등 비민감 영구 설정** → **`localStorage`**
+- **현재 탭 내 임시 폼 입력값, 일회성 탐색 상태** → **`sessionStorage`**
+- **대용량 오프라인 데이터, 검색 인덱스, 파일 캐시** → **`IndexedDB`**

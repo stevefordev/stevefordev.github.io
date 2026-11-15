@@ -1,116 +1,98 @@
 ---
-title: '[AWS] React 앱 AWS에 배포하기'
+title: AWS S3 + CloudFront + Route 53로 정적 React(SPA) 배포하기
 author: steve park
 pubDatetime: 2017-06-08T09:00:00+09:00
 tags:
-- devlog
-- web
-- aws
-- deploy
-description: '[AWS] React 앱 AWS에 배포하기'
+  - aws
+  - web
+  - deploy
+  - infra
+description: AWS S3에 React(SPA) 빌드 결과물을 올리고, CloudFront(OAC)와 Route 53으로 HTTPS 커스텀 도메인 및 SPA 라우팅 폴백(/index.html), 캐시 전략, AWS CLI 자동 배포를 구성하는 방법을 정리합니다.
 ---
 
-이번에 [48wedding.com](http://48wedding.com)이라는 서비스를 만들고 있다. 만드는 과정에서 처음부터 혼자 만든 서비스는 꽤 있었는데, 배포까지 혼자하는건 처음이어서 그 경험을 공유해보려한다.
+React, Vue, Vite 등으로 만든 프론트엔드 애플리케이션은 최종 빌드 시 정적 파일(`HTML`, `CSS`, `JS`, 이미지)만 남기 때문에 별도의 Node.js 서버 없이도 **AWS S3 + CloudFront** 조합으로 저렴하고 안정적으로 전 세계에 배포할 수 있습니다.
 
-## 목차
+## 전체 배포 아키텍처
 
----
-
-- S3에 호스팅하기
-- 서비스에 도메인 입히기
-
-## S3에 호스팅하기
-
----
-
-먼저 커스텀 도메인을 호스팅하고 싶다면 도메인을 구매해야한다. 고대디, 후이즈, 예스닉, 가비아 등등에서 구매할 수 있다. .com 같은 경우는 보통 1년에 14,000원 정도 선에서 구매할 수 있다.
-
-### 버킷 생성하기
-
-도메인을 구했으면 S3에 버킷을 도메인 이름으로 생성한다. 이때 www가 달린 버킷도 함께 생성한다. 나 같은 경우는 48wedding.com 버킷과 www.48wedding.com 버킷을 함께 만들었다.
-
-### 버킷 권한 설정하기
-
-버킷의 Permissions에 버킷 policy에 가서 이렇게 적는다.
-
-```
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Sid": "AddPerm",
-            "Effect": "Allow",
-            "Principal": "*",
-            "Action": "s3:GetObject",
-            "Resource": "arn:aws:s3:::48wedding.com/*"
-        }
-    ]
-}
-
+```mermaid
+flowchart LR
+    User["사용자 (HTTPS)"] --> R53["Route 53<br/>(Alias 레코드)"]
+    R53 --> CF["CloudFront CDN<br/>(HTTPS · ACM 인증서 · 캐싱)"]
+    CF -->|OAC 보안 접근| S3["Private S3 버킷<br/>(dist / build 정적 파일)"]
+    CF -.->|403/404 시 /index.html 200 반환| SPA["SPA 클라이언트 라우팅 복구"]
 ```
 
-나 말고도 다른 사람들이 이 버킷의 내용을 받아갈 수 있게 하겠다는 내용이다. 그래야 사람들이 웹사이트를 볼 수 있다.
+과거에는 S3 버킷 자체를 Public으로 열고 "정적 웹사이트 호스팅(Static Website Hosting)" 기능을 켜는 방식을 많이 썼지만, S3 웹사이트 엔드포인트는 HTTPS를 직접 지원하지 못합니다. 실무에서는 **S3 버킷은 비공개(Private)로 유지하고 앞단에 CloudFront + ACM(SSL 인증서)을 두는 구성**이 보안과 성능(CDN 캐싱) 측면에서 표준입니다.
 
-아. 버젼을 바꾸고 싶은 유혹에 빠질지도 모르는데. "하지말자"
+## 1단계: S3 버킷 생성 및 빌드 파일 업로드
 
-버전은 특정한 버전이 정해져있는거라서 바꾸면 안된다. 자세한 내용은 나도 잘 모르지만. 바꾸지말자. 어차피 바꾸면 에러가 난다.
+1. AWS 콘솔에서 S3 버킷을 생성합니다(예: `my-frontend-app-prod`).
+2. **퍼블릭 액세스 차단(Block all public access)** 은 켜진 상태(비공개)로 둡니다. CloudFront의 **OAC(Origin Access Control)** 를 통해서만 S3 객체에 접근하게 만들기 위함입니다.
+3. 로컬에서 프론트엔드 프로젝트를 빌드(`npm run build`)해 생성된 `dist/` 또는 `build/` 폴더의 내용을 업로드합니다.
 
-### 버킷에 앱 올리기
+> [!NOTE]
+> 만약 CloudFront 없이 순수 **S3 정적 웹사이트 호스팅(HTTP 전용)** 만 테스트 용도로 구성한다면, 버킷을 퍼블릭으로 허용한 뒤 정적 호스팅 옵션에서 **인덱스 문서와 오류 문서를 모두 `index.html`** 로 지정해야 합니다.
 
-도메인 버킷에 웹팩 빌드한 폴더의 내용을 업로드 한다. create-react-app을 이용한다면 터미널에 npm run build하면 나오는 폴더를 이야기한다.
+## 2단계: CloudFront 배포와 SPA 라우팅 해결
 
-build 폴더의 내용만 올리면 된다.
+SPA(React Router 등 History API 기반)를 정적 호스팅에 올릴 때 가장 흔히 겪는 문제가 **"메인 페이지는 열리는데 `/posts/1` 같은 하위 경로에서 새로고침하면 `403 Forbidden` 또는 `404 Not Found`가 뜨는 현상"** 입니다.
 
-### 버킷 프로퍼티 바꾸기
+이는 S3 버킷 안에 `/posts/1`이라는 실제 파일이 없기 때문입니다. CloudFront에서 아래 설정을 추가하면 깔끔하게 해결됩니다.
 
-도메인 버킷의 프로퍼티에서 정적 웹사이트 호스팅을 ON하고 메인 페이지와 에러페이지를 모두 index.html로 한다. ( 이건 정말 엄청난 팁이다! 자세한 내용은 다음 포스팅에.. )
+1. **Origin 설정**: 1단계에서 만든 S3 버킷을 선택하고, **Origin access control(OAC)** 을 생성해 S3 버킷 정책에 CloudFront 접근 권한을 반영합니다.
+2. **HTTPS 강제**: Viewer protocol policy를 **`Redirect HTTP to HTTPS`** 로 설정합니다.
+3. **ACM SSL 인증서 연결**: 커스텀 도메인(`example.com`, `www.example.com`)을 사용할 경우 AWS Certificate Manager(CloudFront용은 반드시 **`us-east-1` 리전**)에서 발급받은 인증서를 연결합니다.
+4. **SPA 에러 페이지 폴백 (핵심)**:
+   - CloudFront의 **Error pages** 탭에서 `403`과 `404` 응답에 대한 **Custom Error Response**를 추가합니다.
+   - HTTP error code: `403` (및 `404`)
+   - Response page path: **`/index.html`**
+   - HTTP Response Code: **`200: OK`**
 
-이제 www.가 달린 버킷의 프로퍼티를 정적 웨사이트 호스팅을 ON하고 redirct한다고 체크하자. redirect를 도메인으로 하면된다. (나같은 경우는 48wedding.com)
+이제 사용자가 `/about`이나 `/posts/1`에서 새로고침해도 S3가 반환한 403/404를 CloudFront가 `/index.html` (200 OK)로 바꿔 응답하므로 클라이언트 라우터가 정상 동작합니다.
 
-이렇게만해도 웹사이트는 오픈된다. <도메인>.s3-website.<리젼>.amazonaws.com으로 접속해보면 구동되는것을 확인할 수 있다.
+## 3단계: Route 53 커스텀 도메인 연결
 
-나의 경우는 48wedding.com.s3-website.ap-northeast-2.amazonaws.com 이었다.
+1. **Hosted Zone 생성**: Route 53에서 보유한 도메인(`example.com`)으로 호스팅 영역을 생성합니다.
+2. **레코드 연결**:
+   - 루트 도메인(`example.com`): 레코드 유형 **`A`**, **Alias 활성화**, 대상은 **CloudFront 배포** 선택
+   - 서브 도메인(`www.example.com`): `A` Alias 또는 `CNAME`으로 CloudFront 도메인 연결 (`www` → 루트 리다이렉트가 필요하면 CloudFront Function 사용)
+3. **네임서버(NS) 변경**: 도메인 등록 대행사(가비아, GoDaddy, Namecheap 등)에 Route 53 호스팅 영역에 발급된 NS 레코드 4개를 등록합니다.
 
-거의 끝났다. 엄청 단순한데 처음하는거라 엄청 헤메었다. 여러분들은 헤메지 마세요. 호구는 저 하나로 족합니다.
+## 4단계: AWS CLI를 이용한 배포 자동화와 캐시 전략
 
-## 웹사이트에 도메인 입히기
+매번 콘솔에 파일을 드래그해서 올리지 않고 **AWS CLI**로 빌드 → 동기화 → 캐시 무효화를 한 번에 처리할 수 있습니다. 이때 **해시된 에셋과 `index.html`의 캐시 정책을 분리**하는 것이 중요합니다.
 
----
+```bash file="deploy.sh"
+#!/usr/bin/env bash
+set -euo pipefail
 
-이제 Route53으로 가자.
+BUCKET="s3://my-frontend-app-prod"
+DISTRIBUTION_ID="E1234567890ABC"
 
-### Hosted Zone 생성하기
+# 1. 프로덕션 빌드
+npm run build
 
-도메인으로 Hosted Zone을 생성한다. (나의 경우 48wedding.com)
+# 2. JS/CSS/이미지 등 해시가 포함된 정적 에셋은 장기 캐시(1년) 적용 후 동기화
+aws s3 sync dist/ "$BUCKET" \
+  --delete \
+  --exclude "index.html" \
+  --cache-control "public, max-age=31536000, immutable"
 
-### Alias 레코드 추가하기
+# 3. index.html은 항상 최신 버전을 확인하도록 캐시 비활성화
+aws s3 cp dist/index.html "$BUCKET/index.html" \
+  --cache-control "no-cache, no-store, must-revalidate"
 
-해당 호스티드 존에 들어가서 create record set을 클릭하고 이름을 도메인(48wedding.com)으로, 타입을 A - IPv4 address으로 한다.
+# 4. CloudFront 엣지 캐시 무효화
+aws cloudfront create-invalidation \
+  --distribution-id "$DISTRIBUTION_ID" \
+  --paths "/index.html"
+```
 
-Alias를 yes로 하고 Alias Target을 s3도메인 버킷으로 하면된다.
+> [!TIP]
+> `index.html`만 `no-cache`로 두고 JS/CSS 파일은 파일명 해시(`app.a1b2c3.js`) + `immutable` 장기 캐시로 배포하면, 새 버전을 올렸을 때 사용자가 구버전 HTML을 보거나 캐시 무효화 비용(`/*`)을 과도하게 쓰는 문제를 동시에 방지할 수 있습니다.
 
-### CNAME 레코드 추가하기
+## 핵심 요약
 
-create record set을 클릭하고 이름을 www.도메인(www.48wedding.com)으로, 타입을 CNAME 으로 한다.
-
-다른건 건드리지 않고 value를 www.<도메인>.s3-website.<리젼>.amazonaws.com으로 한다.
-
-이제 마지막 하나만 남았다.
-
-### 네임서버 변경하기
-
-도메인을 구입한 사이트에 가서 네임서버를 변경하자. Route 53의 호스티드 존을 생성하면 네임서버(NS) 4개가 배당되는데, 그 4개의 네임서버를 후이즈나 가비아 등등 자신이 도메인을 구입한 웹사이트에 도메인 네임서버설정에 적는다.
-
-끝났다. 실제로해보면 엄청 쉽다. 물론 나는 하루종일 했다.ㅠ
-
-## 마치며
-
----
-
-한번설정해 놓으면 다음부턴 엄청 쉽다. 이래서 다들 AWS AWS 하는 구나 싶다.
-
-나 같은경우는 별도의 설정을 더 해놔서 업데이트를 하면 배포하는데는 build파일을 만드는 시간밖에 안걸린다. 내가 쓰는시간은 1초도 안되는데, 이것도 나중에 소개해 보려한다.
-
-배포에 대한 막연한 두려움이나 어려움이 있었는데, 하고나니까 크게 어렵지 않다.
-
-물론 실제로는 여러가지가 덕지덕지 붙게 된다. 젠킨스나 트레비스 같은 툴도 사용하기도하고... 조금씩 공부하는걸로 하자.
+- 정적 SPA 배포는 **비공개 S3 + CloudFront(OAC + HTTPS) + Route 53** 조합이 가장 안전하고 빠릅니다.
+- History API 라우팅 새로고침 오류는 CloudFront **Custom Error Response (`403`/`404` → `/index.html`, HTTP `200`)** 로 해결합니다.
+- 배포 스크립트에서는 `index.html`과 해시된 정적 자산의 `Cache-Control` 헤더를 반드시 구분해 업로드하세요.
