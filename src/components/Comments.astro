@@ -6,15 +6,15 @@ const isReady =
   giscus?.enabled &&
   Boolean(giscus.repo && giscus.repoId && giscus.category && giscus.categoryId);
 
-const lightTheme = giscus?.lightTheme ?? "light";
-const darkTheme = giscus?.darkTheme ?? "dark_dimmed";
+const lightTheme = giscus?.lightTheme ?? "noborder_light";
+const darkTheme = giscus?.darkTheme ?? "transparent_dark";
 ---
 
 {
   isReady && giscus && (
     <section
       id="comments"
-      class="mt-8"
+      class="mt-10"
       aria-label="Comments"
       data-light-theme={lightTheme}
       data-dark-theme={darkTheme}
@@ -48,8 +48,8 @@ const darkTheme = giscus?.darkTheme ?? "dark_dimmed";
     const section = document.getElementById("comments");
     if (!section) return;
 
-    const lightTheme = section.dataset.lightTheme || "light";
-    const darkTheme = section.dataset.darkTheme || "dark_dimmed";
+    const lightTheme = section.dataset.lightTheme || "noborder_light";
+    const darkTheme = section.dataset.darkTheme || "transparent_dark";
 
     function currentGiscusTheme() {
       return document.documentElement.dataset.theme === "dark"

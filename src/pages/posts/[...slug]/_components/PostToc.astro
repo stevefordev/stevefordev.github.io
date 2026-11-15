@@ -127,42 +127,45 @@ const items = buildTocTree(headings);
   :is(.toc-side, .toc-popover) ol {
     list-style: none;
     margin: 0;
-    padding-inline-start: 1rem;
+    padding-inline-start: 0.75rem;
+  }
+  :is(.toc-side, .toc-popover) nav > ol {
+    padding-inline-start: 0;
   }
   :is(.toc-side, .toc-popover) ol ol {
-    color: color-mix(in oklab, var(--color-foreground) 80%, transparent);
+    color: var(--color-muted-foreground);
   }
   :is(.toc-side, .toc-popover) li {
-    margin-block: 0.375rem;
+    margin-block: 0.25rem;
   }
   :is(.toc-side, .toc-popover) nav a {
     position: relative;
-    display: inline-block;
-    padding: 0.125rem 0.25rem;
+    display: block;
+    padding: 0.2rem 0.5rem;
+    border-inline-start: 2px solid transparent;
     border-radius: 0.25rem;
+    color: var(--color-muted-foreground);
     overflow-wrap: anywhere;
-    transition: color 0.2s ease;
+    transition:
+      color 0.15s ease,
+      border-color 0.15s ease;
   }
-  :is(.toc-side, .toc-popover) nav a::before {
-    content: "#";
-    content: "#" / "";
-    position: absolute;
-    inset-inline-start: -0.75rem;
-    opacity: 0.6;
+  [data-toc-nav] a:hover {
+    color: var(--color-foreground);
   }
-  [data-toc-nav] a:hover,
   [data-toc-nav] a[aria-current="true"] {
     color: var(--color-accent);
-  }
-  [data-toc-nav] a[aria-current="true"] {
-    text-decoration: underline dashed;
-    text-underline-offset: 4px;
+    border-inline-start-color: var(--color-accent);
+    font-weight: 600;
   }
   .toc-label {
     flex-shrink: 0;
     padding-block-end: 0.5rem;
-    font-size: 0.875rem;
-    font-weight: 700;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--color-muted-foreground);
   }
   /* The label and Back to top stay put; only the list between them scrolls. */
   :is(.toc-side, .toc-popover) nav {
@@ -198,19 +201,22 @@ const items = buildTocTree(headings);
   }
   .toc-side > nav {
     position: sticky;
-    top: 2rem;
-    max-height: calc(100dvh - 4rem);
-    font-size: 0.875rem;
-    line-height: 1.4;
+    top: 5.5rem;
+    max-height: calc(100dvh - 7rem);
+    font-size: 0.8125rem;
+    line-height: 1.45;
   }
 
   .toc-back-to-top {
     display: flex;
     align-items: center;
     gap: 0.375rem;
-    padding: 0.125rem 0.25rem;
-    border-radius: 0.25rem;
-    font-size: 0.875rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.375rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--color-muted-foreground);
+    transition: color 0.15s ease;
   }
   .toc-back-to-top:hover {
     color: var(--color-accent);
@@ -220,7 +226,7 @@ const items = buildTocTree(headings);
     margin-block-start: 0.5rem;
     padding-block: 0.5rem;
     border-radius: 0;
-    border-block-start: 1px dashed var(--color-border);
+    border-block-start: 1px solid var(--color-border);
   }
 
   /* The layout TOC replaces an author-written one (deprecated, see rehypeInlineToc). */

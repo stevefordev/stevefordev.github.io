@@ -40,8 +40,8 @@ export default defineAstroPaperConfig({
       emitMetadata: "0",
       inputPosition: "bottom",
       lang: "ko",
-      lightTheme: "light",
-      darkTheme: "dark_dimmed",
+      lightTheme: "noborder_light",
+      darkTheme: "transparent_dark",
     },
     // 방문자 통계를 사용하려면 아래 중 원하는 서비스의 식별자를 입력하세요.
     analytics: {

@@ -170,23 +170,25 @@ const items = withToc ? buildTocTree(headings) : [];
   .post-fab-btn {
     position: relative;
     display: flex;
-    width: 3.5rem;
-    height: 3.5rem;
+    width: 3.25rem;
+    height: 3.25rem;
     align-items: center;
     justify-content: center;
     border-radius: 9999px;
     border: 2px solid transparent;
-    background: var(--color-background) padding-box;
+    background: var(--glass-bg) padding-box;
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    backdrop-filter: saturate(180%) blur(20px);
     color: var(--color-foreground);
     box-shadow:
-      0 10px 15px -3px rgb(0 0 0 / 0.15),
-      0 4px 6px -4px rgb(0 0 0 / 0.15);
+      0 10px 24px -4px rgb(0 0 0 / 0.16),
+      0 2px 8px -2px rgb(0 0 0 / 0.1);
   }
   /* The ring is the scroll progress: a 4px accent arc over a 2px track, showing
      through the button's transparent border. Accent and track have similar
      lightness in the light theme, so the arc stands out by its width. */
   .post-fab-progress {
-    --fab-track: var(--color-muted-foreground);
+    --fab-track: var(--color-border);
     position: absolute;
     inset: -4px;
     z-index: -1;
@@ -206,10 +208,8 @@ const items = withToc ? buildTocTree(headings) : [];
       color: var(--color-accent);
     }
   }
-  /* Dashed, so it doesn't read as a second progress ring. The offset clears the
-     arc, which sticks out 2px past the button. */
   .post-fab-btn:focus-visible {
-    outline: 2px dashed var(--color-accent);
+    outline: 2px solid var(--color-accent);
     outline-offset: 4px;
     color: var(--color-accent);
   }
@@ -232,26 +232,45 @@ const items = withToc ? buildTocTree(headings) : [];
   .toc-popover {
     position: fixed;
     inset: auto;
-    inset-block-end: 6.25rem;
+    inset-block-end: 6rem;
     inset-inline-end: 1rem;
     margin: 0;
     width: min(20rem, calc(100vw - 2rem));
     max-height: min(60dvh, 28rem);
     flex-direction: column;
     padding: 0;
-    border: 1px solid var(--color-border);
-    border-radius: 0.5rem;
-    background: var(--color-background);
+    border: 1px solid var(--glass-border);
+    border-radius: 1rem;
+    background: var(--glass-bg);
+    -webkit-backdrop-filter: saturate(180%) blur(24px);
+    backdrop-filter: saturate(180%) blur(24px);
     color: var(--color-foreground);
-    font-size: 0.9rem;
-    box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.2);
+    font-size: 0.875rem;
+    box-shadow: 0 20px 40px -12px rgb(0 0 0 / 0.22);
   }
   .toc-popover:popover-open {
     display: flex;
   }
   .toc-popover nav {
-    padding: 0.75rem 1.25rem 0.25rem 1rem;
+    padding: 0.875rem 1.25rem 0.5rem 1rem;
   }
+
+  @media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+    .post-fab-btn,
+    .toc-popover {
+      background: var(--color-surface-elevated);
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+      border-color: var(--color-border);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .post-fab {
+      transition: none;
+    }
+  }
+
   /* Without popover support nothing would hide it (Safari before 17). */
   @supports not selector(:popover-open) {
     .toc-popover {

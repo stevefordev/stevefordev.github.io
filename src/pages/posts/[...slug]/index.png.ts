@@ -35,120 +35,90 @@ export const GET: APIRoute = async ({ props, url }) => {
       type: "div",
       props: {
         style: {
-          background: "#fefbfb",
+          background: "#f5f5f7",
           width: "100%",
           height: "100%",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           fontFamily: '"Google Sans Code", "NanumGothic"',
+          color: "#1d1d1f",
         },
-        children: [
-          {
-            type: "div",
-            props: {
-              style: {
-                position: "absolute",
-                top: "-1px",
-                right: "-1px",
-                boxSizing: "border-box",
-                border: "4px solid #000",
-                background: "#ecebeb",
-                opacity: "0.9",
-                borderRadius: "4px",
-                display: "flex",
-                justifyContent: "center",
-                margin: "2.5rem",
-                width: "88%",
-                height: "80%",
-              },
+        children: {
+          type: "div",
+          props: {
+            style: {
+              boxSizing: "border-box",
+              border: "1px solid #d2d2d7",
+              background: "#ffffff",
+              borderRadius: "28px",
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "space-between",
+              padding: "56px 64px",
+              width: "88%",
+              height: "80%",
             },
-          },
-          {
-            type: "div",
-            props: {
-              style: {
-                position: "relative",
-                boxSizing: "border-box",
-                border: "4px solid #000",
-                background: "#fefbfb",
-                borderRadius: "4px",
-                display: "flex",
-                justifyContent: "center",
-                margin: "2rem",
-                width: "88%",
-                height: "80%",
+            children: [
+              {
+                type: "div",
+                props: {
+                  style: {
+                    width: "56px",
+                    height: "6px",
+                    borderRadius: "999px",
+                    background: "#0066cc",
+                  },
+                },
               },
-              children: {
+              {
+                type: "p",
+                props: {
+                  style: {
+                    fontSize: props.data.title.length > 38 ? 50 : 58,
+                    fontWeight: "bold",
+                    margin: 0,
+                    maxHeight: "65%",
+                    overflow: "hidden",
+                    lineHeight: 1.3,
+                    color: "#1d1d1f",
+                    wordBreak: "keep-all",
+                    overflowWrap: "break-word",
+                  },
+                  children: props.data.title,
+                },
+              },
+              {
                 type: "div",
                 props: {
                   style: {
                     display: "flex",
-                    flexDirection: "column",
                     justifyContent: "space-between",
-                    margin: "20px",
-                    width: "90%",
-                    height: "90%",
+                    alignItems: "center",
+                    width: "100%",
+                    fontSize: 26,
+                    color: "#5e5e63",
                   },
                   children: [
                     {
-                      type: "p",
+                      type: "span",
                       props: {
-                        style: {
-                          fontSize: 72,
-                          fontWeight: "bold",
-                          margin: "17px 0 0",
-                          maxHeight: "80%",
-                          overflow: "hidden",
-                        },
-                        children: props.data.title,
+                        children: `by ${props.data.author}`,
                       },
                     },
                     {
-                      type: "div",
+                      type: "span",
                       props: {
-                        style: {
-                          display: "flex",
-                          justifyContent: "space-between",
-                          width: "100%",
-                          marginBottom: "8px",
-                          fontSize: 28,
-                        },
-                        children: [
-                          {
-                            type: "span",
-                            props: {
-                              children: [
-                                "by ",
-                                {
-                                  type: "span",
-                                  props: {
-                                    style: {
-                                      overflow: "hidden",
-                                      fontWeight: "bold",
-                                    },
-                                    children: props.data.author,
-                                  },
-                                },
-                              ],
-                            },
-                          },
-                          {
-                            type: "span",
-                            props: {
-                              style: { overflow: "hidden", fontWeight: "bold" },
-                              children: config.site.title,
-                            },
-                          },
-                        ],
+                        style: { fontWeight: "bold", color: "#0066cc" },
+                        children: config.site.title,
                       },
                     },
                   ],
                 },
               },
-            },
+            ],
           },
-        ],
+        },
       },
     },
     {

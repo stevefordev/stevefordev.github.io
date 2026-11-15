@@ -55,9 +55,13 @@ const publishDate = (post: CollectionEntry<"posts">) =>
       )
         .sort(([yearA], [yearB]) => Number(yearB) - Number(yearA))
         .map(([year, yearGroup]) => (
-          <div>
-            <span class="text-2xl font-bold">{year}</span>{" "}
-            <sup class="text-muted-foreground text-sm">{yearGroup.length}</sup>
+          <div class="mb-8">
+            <div class="border-border mb-4 flex items-baseline gap-1.5 border-b pb-2 tabular-nums">
+              <span class="text-2xl font-bold tracking-tight">{year}</span>
+              <span class="text-muted-foreground text-sm font-medium">
+                ({yearGroup.length})
+              </span>
+            </div>
             {Object.entries(
               getPostsByGroupCondition(
                 yearGroup,
@@ -67,17 +71,17 @@ const publishDate = (post: CollectionEntry<"posts">) =>
               .sort(([monthA], [monthB]) => Number(monthB) - Number(monthA))
               .map(([month, monthGroup]) => (
                 <div class="flex flex-col sm:flex-row">
-                  <div class="mt-6 min-w-36 text-lg sm:my-6">
-                    <span class="font-bold">
+                  <div class="mt-4 min-w-36 text-base tabular-nums sm:my-4">
+                    <span class="font-semibold">
                       {monthFormatter.format(
                         new Date(2000, Number(month) - 1, 1)
                       )}
                     </span>{" "}
-                    <sup class="text-muted-foreground text-xs">
-                      {monthGroup.length}
-                    </sup>
+                    <span class="text-muted-foreground text-xs font-medium">
+                      ({monthGroup.length})
+                    </span>
                   </div>
-                  <ul>
+                  <ul class="flex-1 space-y-1">
                     {monthGroup
                       .sort(
                         (a, b) =>

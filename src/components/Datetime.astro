@@ -42,23 +42,29 @@ const date =
 ---
 
 <div
-  class:list={["text-muted-foreground flex items-center gap-x-2", className]}
+  class:list={[
+    "text-muted-foreground flex items-center gap-x-1.5 tabular-nums",
+    className,
+  ]}
 >
   <IconCalendar
     class:list={[
-      "inline-block size-6 min-w-5.5",
-      { "scale-90": size === "sm" },
+      "inline-block shrink-0 opacity-75",
+      size === "lg" ? "size-4.5" : "size-4",
     ]}
   />
   {
     isModified && (
-      <span class:list={["text-sm", { "sm:text-base": size === "lg" }]}>
+      <span class:list={["text-xs", { "sm:text-sm": size === "lg" }]}>
         {t.post.updatedAt}:
       </span>
     )
   }
   <time
-    class:list={["text-sm", { "sm:text-base": size === "lg" }]}
+    class:list={[
+      "font-medium",
+      size === "lg" ? "text-sm sm:text-base" : "text-xs sm:text-sm",
+    ]}
     datetime={datetime.toISOString()}
   >
     {date}

@@ -6,6 +6,11 @@
 @custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
 
 @layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
   * {
     @apply border-border outline-accent/75;
     scrollbar-width: auto;
@@ -14,7 +19,7 @@
   a,
   button,
   #main-content {
-    @apply outline-accent outline-offset-1 focus-visible:no-underline focus-visible:outline-2 focus-visible:outline-dashed;
+    @apply outline-accent outline-offset-2 focus-visible:no-underline focus-visible:outline-2 focus-visible:outline-solid;
   }
   button:not(:disabled),
   [role="button"]:not(:disabled) {
@@ -27,13 +32,37 @@
 }
 
 @utility app-layout {
-  @apply max-w-app mx-auto w-full px-4;
+  @apply max-w-app mx-auto w-full px-4 sm:px-6;
 }
 
 @utility active-nav {
-  @apply underline decoration-wavy decoration-2 underline-offset-8;
+  @apply bg-foreground/8 text-foreground rounded-full font-semibold;
+}
+
+@utility glass-chrome {
+  background-color: var(--glass-bg);
+  border-color: var(--glass-border);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
+}
+
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .glass-chrome {
+    background-color: var(--surface-elevated);
+    border-color: var(--border);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+  }
 }
 
 :target {
-  scroll-margin-block: 1rem;
+  scroll-margin-block: 5rem;
 }

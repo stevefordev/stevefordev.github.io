@@ -6,26 +6,50 @@ import Datetime from "./Datetime.astro";
 
 type Props = {
   variant?: "h2" | "h3";
+  layout?: "list" | "featured";
 } & CollectionEntry<"posts">;
 
-const { variant: Heading = "h2", id, data, filePath } = Astro.props;
+const {
+  variant: Heading = "h2",
+  layout = "list",
+  id,
+  data,
+  filePath,
+} = Astro.props;
 
 const { title, description, ...props } = data;
 ---
 
-<li class="my-6">
-  <a
-    href={getPostUrl(id, filePath, Astro.currentLocale)}
+<li
+  class:list={[
+    layout === "featured"
+      ? "border-border bg-surface-elevated hover:border-foreground/18 group relative flex flex-col justify-between rounded-2xl border p-5 shadow-2xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md motion-reduce:transition-none motion-reduce:hover:translate-y-0"
+      : "hover:bg-surface/80 group relative -mx-3 rounded-xl px-3 py-4 transition-colors duration-150 motion-reduce:transition-none",
+  ]}
+>
+  <div>
+    <a
+      href={getPostUrl(id, filePath, Astro.currentLocale)}
+      class:list={[
+        "text-foreground group-hover:text-accent inline-block font-semibold tracking-tight transition-colors",
+        "after:absolute after:inset-0 focus-visible:no-underline",
+        layout === "featured" ? "text-lg leading-snug" : "text-lg leading-snug",
+      ]}
+    >
+      <Heading transition:name={toTransitionName(id)}>
+        {title}
+      </Heading>
+    </a>
+    <div class="mt-1.5">
+      <Datetime {...props} />
+    </div>
+  </div>
+  <p
     class:list={[
-      "text-accent inline-block text-lg font-medium",
-      "decoration-dashed underline-offset-4 hover:underline",
-      "focus-visible:no-underline focus-visible:underline-offset-0",
+      "text-muted-foreground text-sm leading-relaxed",
+      layout === "featured" ? "mt-3" : "mt-2",
     ]}
   >
-    <Heading transition:name={toTransitionName(id)}>
-      {title}
-    </Heading>
-  </a>
-  <Datetime {...props} />
-  <p>{description}</p>
+    {description}
+  </p>
 </li>
