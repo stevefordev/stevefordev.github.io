@@ -1,0 +1,91 @@
+---
+import config from "@/config";
+
+const giscus = config.features.giscus;
+const isReady =
+  giscus?.enabled &&
+  Boolean(giscus.repo && giscus.repoId && giscus.category && giscus.categoryId);
+
+const lightTheme = giscus?.lightTheme ?? "light";
+const darkTheme = giscus?.darkTheme ?? "dark_dimmed";
+---
+
+{
+  isReady && giscus && (
+    <section
+      id="comments"
+      class="mt-8"
+      aria-label="Comments"
+      data-light-theme={lightTheme}
+      data-dark-theme={darkTheme}
+    >
+      <div class="giscus" />
+      <script
+        is:inline
+        data-astro-rerun
+        src="https://giscus.app/client.js"
+        data-repo={giscus.repo}
+        data-repo-id={giscus.repoId}
+        data-category={giscus.category}
+        data-category-id={giscus.categoryId}
+        data-mapping={giscus.mapping ?? "pathname"}
+        data-strict={giscus.strict ?? "0"}
+        data-reactions-enabled={giscus.reactionsEnabled ?? "1"}
+        data-emit-metadata={giscus.emitMetadata ?? "0"}
+        data-input-position={giscus.inputPosition ?? "bottom"}
+        data-theme={lightTheme}
+        data-lang={giscus.lang ?? config.site.lang}
+        data-loading="lazy"
+        crossorigin="anonymous"
+        async
+      />
+    </section>
+  )
+}
+
+<script is:inline data-astro-rerun>
+  (function () {
+    const section = document.getElementById("comments");
+    if (!section) return;
+
+    const lightTheme = section.dataset.lightTheme || "light";
+    const darkTheme = section.dataset.darkTheme || "dark_dimmed";
+
+    function currentGiscusTheme() {
+      return document.documentElement.dataset.theme === "dark"
+        ? darkTheme
+        : lightTheme;
+    }
+
+    function syncGiscusTheme() {
+      const iframe = document.querySelector("iframe.giscus-frame");
+      if (!iframe || !iframe.contentWindow) return;
+      iframe.contentWindow.postMessage(
+        { giscus: { setConfig: { theme: currentGiscusTheme() } } },
+        "https://giscus.app"
+      );
+    }
+
+    const scriptTag = section.querySelector("script[data-repo]");
+    if (scriptTag) {
+      scriptTag.setAttribute("data-theme", currentGiscusTheme());
+    }
+
+    const observer = new MutationObserver(syncGiscusTheme);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-theme"],
+    });
+
+    window.addEventListener("message", event => {
+      if (event.origin !== "https://giscus.app") return;
+      if (
+        event.data &&
+        typeof event.data === "object" &&
+        "giscus" in event.data
+      ) {
+        syncGiscusTheme();
+      }
+    });
+  })();
+</script>
